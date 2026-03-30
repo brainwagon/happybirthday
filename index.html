@@ -161,6 +161,10 @@
 
         gltfLoader.load('birthday_cake.glb', (gltf) => {
             cakeModel = gltf.scene;
+            console.log("GLB Model Structure:");
+            cakeModel.traverse(node => {
+                console.log("- " + node.name + " (" + node.type + ")");
+            });
             
             // Center and scale the model
             const box = new THREE.Box3().setFromObject(cakeModel);
@@ -249,7 +253,7 @@
             const flame = new THREE.Sprite(new THREE.SpriteMaterial({ 
                 map: indFlameTex, blending: THREE.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false 
             }));
-            flame.scale.set(0.6, 1.0, 1);
+            flame.scale.set(1.2, 2.0, 1);
             // Set center to bottom-middle so the flame "sits" on the wick
             flame.center.set(0.5, 0); 
             flame.position.set(x, y, z);
@@ -316,8 +320,8 @@
             if (celebrate) {
                 const time = Date.now();
                 flames.forEach((flame, i) => {
-                    const flicker = Math.sin(time * 0.01 + i) * 0.05;
-                    flame.scale.set(0.6 + flicker, 1.0 + flicker * 2, 1);
+                    const flicker = Math.sin(time * 0.01 + i) * 0.1;
+                    flame.scale.set(1.2 + flicker, 2.0 + flicker * 2, 1);
                     flame.userData.light.intensity = 1.0 + flicker * 4;
                     const frame = (Math.floor(time / 100) + flame.userData.frameOffset) % 12;
                     flame.material.map.offset.x = (frame % 4) / 4;
