@@ -145,10 +145,48 @@
         scene.add(cakeGroup);
 
         // --- Tabletop ---
+        function createWoodTexture() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Base brown
+            ctx.fillStyle = '#4a2c2a';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Grain lines
+            ctx.strokeStyle = '#3a1c1a';
+            for (let i = 0; i < 200; i++) {
+                ctx.lineWidth = Math.random() * 2 + 1;
+                ctx.beginPath();
+                const x = Math.random() * size;
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x + (Math.random() - 0.5) * 20, size);
+                ctx.stroke();
+            }
+            
+            // Knots
+            for (let i = 0; i < 5; i++) {
+                const kX = Math.random() * size;
+                const kY = Math.random() * size;
+                for (let r = 0; r < 10; r++) {
+                    ctx.beginPath();
+                    ctx.ellipse(kX, kY, r * 2, r * 4, Math.random() * Math.PI, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(4, 4);
+            return tex;
+        }
+
         const tableGeo = new THREE.BoxGeometry(50, 1, 50);
-        const tableMat = new THREE.MeshStandardMaterial({ color: 0x4a2c2a, roughness: 0.8 }); // Dark wood color
+        const tableMat = new THREE.MeshStandardMaterial({ map: createWoodTexture(), roughness: 0.8 }); 
         const table = new THREE.Mesh(tableGeo, tableMat);
-        table.position.y = -0.7; // Just below the plate
+        table.position.y = -0.7; 
         table.receiveShadow = true;
         scene.add(table);
 
@@ -167,12 +205,14 @@
             new THREE.PlaneGeometry(5.2, 7.2),
             new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 })
         );
-        picture.position.z = 0.21; // Sit slightly in front of the frame
+        picture.position.z = 0.21; 
         frameGroup.add(picture);
         
-        frameGroup.position.set(10, 3.3, 2); // To the right and slightly back
-        frameGroup.rotation.y = -Math.PI / 6; // Angled towards camera
-        frameGroup.rotation.x = -Math.PI / 18; // Tilted back
+        // table.position.y is -0.7, height is 1.0 -> top is at -0.2
+        // frame height is 8.0, center should be at -0.2 + 4.0 = 3.8
+        frameGroup.position.set(10, 3.8, 2); 
+        frameGroup.rotation.y = -Math.PI / 6; 
+        frameGroup.rotation.x = -Math.PI / 18; 
         scene.add(frameGroup);
 
         const manager = new THREE.LoadingManager();
