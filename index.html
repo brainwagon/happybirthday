@@ -114,9 +114,12 @@
         document.getElementById('personal-message').innerText = CONFIG.personalMessage;
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 10, 20);
-        camera.lookAt(0, 4, 0);
+        // FOV narrowed by 25% (75 * 0.75 = 56.25)
+        // To keep framing similar, distance increases by factor of tan(75/2)/tan(56.25/2) approx 1.366
+        // Current distance approx 20 -> New distance approx 27.3
+        const camera = new THREE.PerspectiveCamera(56.25, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 13.6, 27.3); 
+        camera.lookAt(0, 5.5, 0);
 
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
