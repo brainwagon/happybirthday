@@ -179,11 +179,17 @@
         const textureLoader = new THREE.TextureLoader(manager);
         const gltfLoader = new GLTFLoader(manager);
 
-        let flameTex;
+        let flameTex, markFaceTex;
         textureLoader.load('3_8-removebg-preview.png', tex => {
             flameTex = tex;
             flameTex.magFilter = THREE.NearestFilter;
             flameTex.minFilter = THREE.NearestFilter;
+        });
+        
+        textureLoader.load('markface.jpg', tex => {
+            markFaceTex = tex;
+            picture.material.map = markFaceTex;
+            picture.material.needsUpdate = true;
         });
 
         const candles = [];
