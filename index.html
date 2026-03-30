@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Happy Birthday!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <style>
+        body {
+            margin: 0;
+            background: radial-gradient(circle at center, #1a237e 0%, #0d47a1 50%, #01579b 100%);
+            font-family: 'Dancing Script', cursive;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        #message {
+            font-size: 4rem;
+            color: #ffeb3b;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+        }
+
+        #personal-message {
+            position: absolute;
+            bottom: 50px;
+            font-size: 2rem;
+            color: #fff9c4;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            max-width: 80%;
+            text-align: center;
+            z-index: 10;
+            pointer-events: none;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+        }
+
+        #start-button {
+            padding: 20px 40px;
+            font-size: 2rem;
+            font-family: 'Dancing Script', cursive;
+            background-color: #d81b60;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s, background-color 0.2s;
+            z-index: 20;
+            pointer-events: auto;
+        }
+
+        #start-button:hover {
+            background-color: #c2185b;
+            transform: scale(1.1);
+        }
+
+        #container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1 id="message"></h1>
+        <button id="start-button">Celebrate in 3D!</button>
+    </div>
+
+    <div id="container"></div>
+
+    <div id="personal-message"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // CONFIGURATION
+        const CONFIG = {
+            numCandles: 6,
+            birthdayMessage: "Happy Birthday, Kristin!",
+            personalMessage: "Hope you have a happy birthday, with love from Mark!",
+            candleColors: [0xfff5f5, 0xf5faff, 0xf5fff5, 0xfff5ff, 0xfffcf5], 
+            flameColor: 0xffaa00
+        };
+
+        document.getElementById('message').innerText = CONFIG.birthdayMessage;
+        document.getElementById('personal-message').innerText = CONFIG.personalMessage;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 10, 20);
+        camera.lookAt(0, 4, 0);
+
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = false; 
+        renderer.setClearColor(0x000000, 0); 
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // Lighting: Classic 3-Point Studio Setup
+        const keyLight = new THREE.DirectionalLight(0xfffaf0, 1.5);
+        keyLight.position.set(10, 20, 10);
+        keyLight.castShadow = false; 
+        scene.add(keyLight);
+        
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        fillLight.position.set(-15, 5, 5);
+        scene.add(fillLight);
+        
+        const rimLight = new THREE.DirectionalLight(0xddeeff, 1.0);
+        rimLight.position.set(-5, 10, -15);
+        scene.add(rimLight);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+
+        const cakeGroup = new THREE.Group();
+        scene.add(cakeGroup);
+
+        const manager = new THREE.LoadingManager();
+        const textureLoader = new THREE.TextureLoader(manager);
+        const gltfLoader = new GLTFLoader(manager);
+
+        let flameTex;
+        textureLoader.load('3_8-removebg-preview.png', tex => {
+            flameTex = tex;
+            flameTex.magFilter = THREE.NearestFilter;
+            flameTex.minFilter = THREE.NearestFilter;
+        });
+
+        const candles = [];
+        const flames = [];
+        let cakeModel;
+
+        gltfLoader.load('birthday_cake.glb', (gltf) => {
+            cakeModel = gltf.scene;
+            
+            // Center and scale the model
+            const box = new THREE.Box3().setFromObject(cakeModel);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            
+            // Normalize scale and then increase by 50%
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = (10 / maxDim) * 1.5; 
+            cakeModel.scale.setScalar(scale);
+            
+            // Recalculate after scale
+            const newBox = new THREE.Box3().setFromObject(cakeModel);
+            const newSize = newBox.getSize(new THREE.Vector3());
+            const newCenter = newBox.getCenter(new THREE.Vector3());
+            
+            cakeModel.position.x -= newCenter.x;
+            cakeModel.position.y -= newBox.min.y; // Sit on Y=0
+            cakeModel.position.z -= newCenter.z;
+            
+            cakeModel.traverse(child => {
+                if (child.isMesh) {
+                    child.castShadow = false;
+                    child.receiveShadow = false;
+                }
+            });
+
+            cakeGroup.add(cakeModel);
+
+            // Add White Ceramic Plate
+            const plateRadius = (newSize.x / 2) * 1.3;
+            const plate = new THREE.Mesh(
+                new THREE.CylinderGeometry(plateRadius, plateRadius * 1.05, 0.4, 64),
+                new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0.05 })
+            );
+            plate.position.y = -0.2; 
+            plate.receiveShadow = false; 
+            cakeGroup.add(plate);
+
+            // Add procedural candles on top
+            const topRadius = (newSize.x / 2) * 0.7;
+            const topY = newSize.y;
+            const stripeColors = [0xe91e63, 0x2196f3, 0x4caf50, 0xff9800, 0x9c27b0];
+
+            for (let i = 0; i < CONFIG.numCandles; i++) {
+                const angle = (i / CONFIG.numCandles) * Math.PI * 2 - (10 * Math.PI / 180); // Subtracted 10 degrees for CW rotation
+                const x = Math.cos(angle) * topRadius;
+                const z = Math.sin(angle) * topRadius;
+
+                const candle = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.15, 0.15, 2.25, 32),
+                    new THREE.MeshStandardMaterial({ 
+                        map: createCandleTexture(CONFIG.candleColors[i % CONFIG.candleColors.length], stripeColors[i % stripeColors.length]),
+                        roughness: 0.3 
+                    })
+                );
+                // Lowered by 50% of the NEW height (2.25 * 0.5 = 1.125)
+                // Base at topY, so center at topY + 1.125. 
+                // To lower by 50%, we subtract 1.125 from that center.
+                candle.position.set(x, topY + 0.0, z); 
+                cakeGroup.add(candle);
+                candles.push(candle);
+
+                // Add flame at the new tip of the candle (topY + 1.125)
+                addFlameAt(x, topY + 1.125, z);
+            }
+        });
+
+        function createCandleTexture(baseColorHex, stripeColorHex) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = `#${new THREE.Color(baseColorHex).getHexString()}`; ctx.fillRect(0, 0, 64, 128);
+            ctx.fillStyle = `#${new THREE.Color(stripeColorHex).getHexString()}`;
+            for (let y = -64; y < 128; y += 40) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(64, y + 64); ctx.lineTo(64, y + 64 + 15); ctx.lineTo(0, y + 15); ctx.fill();
+            }
+            return Object.assign(new THREE.CanvasTexture(canvas), { wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping, needsUpdate: true });
+        }
+
+        function addFlameAt(x, y, z) {
+            const indFlameTex = flameTex.clone();
+            indFlameTex.needsUpdate = true;
+            indFlameTex.repeat.set(1/4, 1/3);
+
+            const flame = new THREE.Sprite(new THREE.SpriteMaterial({ 
+                map: indFlameTex, blending: THREE.AdditiveBlending, transparent: true, opacity: 0, depthWrite: false 
+            }));
+            flame.scale.set(0.6, 1.0, 1);
+            // Set center to bottom-middle so the flame "sits" on the wick
+            flame.center.set(0.5, 0); 
+            flame.position.set(x, y, z);
+            
+            cakeGroup.add(flame); 
+            flames.push(flame);
+
+            const fLight = new THREE.PointLight(CONFIG.flameColor, 0, 5);
+            fLight.position.set(x, y + 0.2, z);
+            cakeGroup.add(fLight);
+            flame.userData.light = fLight;
+            flame.userData.frameOffset = Math.floor(Math.random() * 12);
+        }
+
+        manager.onLoad = () => {
+            animate();
+        };
+
+        const birthdaySong = new Audio('the_mountain-happy-birthday-508020.mp3');
+        let celebrate = false;
+        let confettiActive = false;
+
+        // --- Confetti System ---
+        const confettiCount = 150;
+        const confettiParticles = [];
+        const confettiColors = [0xffcccc, 0xccffcc, 0xccccff, 0xffffcc, 0xffccff, 0xccffff, 0xffe5b4]; // Lighter, pastel colors
+        const confettiGroup = new THREE.Group();
+        scene.add(confettiGroup);
+
+        function initConfetti() {
+            const geometry = new THREE.PlaneGeometry(0.3, 0.3); // Doubled size
+            for (let i = 0; i < confettiCount; i++) {
+                const material = new THREE.MeshStandardMaterial({
+                    color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+                    side: THREE.DoubleSide,
+                    roughness: 0.5
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                resetConfetti(mesh, true);
+                confettiGroup.add(mesh);
+                confettiParticles.push({
+                    mesh: mesh,
+                    velocity: new THREE.Vector3((Math.random() - 0.5) * 0.05, -0.05 - Math.random() * 0.1, (Math.random() - 0.5) * 0.05),
+                    rotationSpeed: new THREE.Vector3(Math.random() * 0.1, Math.random() * 0.1, Math.random() * 0.1)
+                });
+            }
+        }
+
+        function resetConfetti(mesh, initial = false) {
+            mesh.position.set(
+                (Math.random() - 0.5) * 30,
+                initial ? 20 + Math.random() * 20 : 25,
+                (Math.random() - 0.5) * 30
+            );
+            mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        }
+
+        initConfetti();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            cakeGroup.rotation.y += 0.002;
+            
+            if (celebrate) {
+                const time = Date.now();
+                flames.forEach((flame, i) => {
+                    const flicker = Math.sin(time * 0.01 + i) * 0.05;
+                    flame.scale.set(0.6 + flicker, 1.0 + flicker * 2, 1);
+                    flame.userData.light.intensity = 1.0 + flicker * 4;
+                    const frame = (Math.floor(time / 100) + flame.userData.frameOffset) % 12;
+                    flame.material.map.offset.x = (frame % 4) / 4;
+                    flame.material.map.offset.y = (2 - Math.floor(frame / 4)) / 3;
+                });
+
+                // Update Confetti
+                confettiParticles.forEach(p => {
+                    p.mesh.position.add(p.velocity);
+                    p.mesh.rotation.x += p.rotationSpeed.x;
+                    p.mesh.rotation.y += p.rotationSpeed.y;
+                    p.mesh.rotation.z += p.rotationSpeed.z;
+
+                    if (p.mesh.position.y < -5) {
+                        if (confettiActive) {
+                            resetConfetti(p.mesh);
+                        } else {
+                            // Move out of way if not resetting
+                            p.mesh.position.y = -100;
+                        }
+                    }
+                });
+            }
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        const startBtn = document.getElementById('start-button');
+        startBtn.addEventListener('click', () => {
+            startBtn.style.display = 'none';
+            celebrate = true;
+            confettiActive = true;
+            flames.forEach((flame, index) => {
+                setTimeout(() => { flame.material.opacity = 1; flame.userData.light.intensity = 1; }, index * 100);
+            });
+            birthdaySong.play();
+            setTimeout(() => document.getElementById('personal-message').style.opacity = 1, 2000);
+        });
+
+        birthdaySong.addEventListener('ended', () => {
+            confettiActive = false; // Taper off once music ends
+        });
+
+    </script>
+</body>
+</html>
