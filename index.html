@@ -100,6 +100,7 @@
     <script type="module">
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         // CONFIGURATION
         const CONFIG = {
@@ -124,14 +125,25 @@
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = false; 
+        renderer.shadowMap.enabled = true; 
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.setClearColor(0x000000, 0); 
         document.getElementById('container').appendChild(renderer.domElement);
 
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 5.5, 0);
+        controls.update();
+
         // Lighting: Classic 3-Point Studio Setup
         const keyLight = new THREE.DirectionalLight(0xfffaf0, 1.5);
-        keyLight.position.set(10, 20, 10);
-        keyLight.castShadow = false; 
+        keyLight.position.set(20, 40, 20); // Moved higher and further for better shadows
+        keyLight.castShadow = true; 
+        keyLight.shadow.mapSize.width = 1024;
+        keyLight.shadow.mapSize.height = 1024;
+        keyLight.shadow.camera.left = -30;
+        keyLight.shadow.camera.right = 30;
+        keyLight.shadow.camera.top = 30;
+        keyLight.shadow.camera.bottom = -30;
         scene.add(keyLight);
         
         const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
@@ -216,6 +228,12 @@
         frameGroup.position.set(-15, 5.8, 2); // Moved to the left and slightly further out
         frameGroup.rotation.y = Math.PI / 6; // Angled towards camera from the left
         frameGroup.rotation.x = -Math.PI / 18; 
+        frameGroup.traverse(child => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
         scene.add(frameGroup);
 
         const manager = new THREE.LoadingManager();
@@ -237,7 +255,51 @@
 
         const candles = [];
         const flames = [];
-        let cakeModel;
+        let cakeModel, mandoModel;
+
+        gltfLoader.load('mandelorian.glb', (gltf) => {
+            mandoModel = gltf.scene;
+            
+            // Rotate so local Z points up (standard for some Z-up models)
+            // And rotate 180 degrees around local Z as requested
+            mandoModel.rotation.x = -Math.PI / 2;
+            mandoModel.rotation.z = Math.PI;
+            mandoModel.updateMatrixWorld(true);
+
+            // Center and scale the model based on its new orientation
+            const box = new THREE.Box3().setFromObject(mandoModel);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            
+            // Scale to be roughly same height as the frame (12 units)
+            const scale = 12 / size.y;
+            mandoModel.scale.setScalar(scale);
+            
+            // Recalculate after scale
+            mandoModel.updateMatrixWorld(true);
+            const newBox = new THREE.Box3().setFromObject(mandoModel);
+            const newCenter = newBox.getCenter(new THREE.Vector3());
+            
+            // Offset model so its center-bottom is at group origin
+            mandoModel.position.x = -newCenter.x;
+            mandoModel.position.y = -newBox.min.y; 
+            mandoModel.position.z = -newCenter.z;
+            
+            const mandoGroup = new THREE.Group();
+            mandoGroup.add(mandoModel);
+            
+            // Set initial position of the group on the table
+            mandoGroup.position.set(18, -0.2, 5);
+            mandoGroup.rotation.y = -Math.PI / 4; 
+            scene.add(mandoGroup);
+
+            mandoModel.traverse(child => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+        });
 
         gltfLoader.load('birthday_cake.glb', (gltf) => {
             cakeModel = gltf.scene;
@@ -268,7 +330,7 @@
             cakeModel.traverse(child => {
                 if (child.isMesh) {
                     child.castShadow = false;
-                    child.receiveShadow = false;
+                    child.receiveShadow = true;
                 }
             });
 
@@ -281,7 +343,7 @@
                 new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0.05 })
             );
             plate.position.y = -0.2; 
-            plate.receiveShadow = false; 
+            plate.receiveShadow = true; 
             cakeGroup.add(plate);
 
             // Add procedural candles on top
@@ -395,6 +457,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            controls.update();
             // cakeGroup.rotation.y += 0.002;
             
             if (celebrate) {
