@@ -195,22 +195,22 @@
         
         // Frame border (Dark Wood)
         const frameBorder = new THREE.Mesh(
-            new THREE.BoxGeometry(6, 8, 0.4),
+            new THREE.BoxGeometry(9, 12, 0.6), // Scaled up 50% (6x8x0.4 -> 9x12x0.6)
             new THREE.MeshStandardMaterial({ color: 0x2a1a1a, roughness: 0.6 })
         );
         frameGroup.add(frameBorder);
         
         // Picture (The "canvas")
         const picture = new THREE.Mesh(
-            new THREE.PlaneGeometry(5.2, 7.2),
+            new THREE.PlaneGeometry(7.8, 10.8), // Scaled up 50% (5.2x7.2 -> 7.8x10.8)
             new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 })
         );
-        picture.position.z = 0.21; 
+        picture.position.z = 0.31; 
         frameGroup.add(picture);
         
         // table.position.y is -0.7, height is 1.0 -> top is at -0.2
-        // frame height is 8.0, center should be at -0.2 + 4.0 = 3.8
-        frameGroup.position.set(-12, 3.8, 2); // Moved to the left (-12) and slightly further out
+        // frame height is 12.0, center should be at -0.2 + 6.0 = 5.8
+        frameGroup.position.set(-15, 5.8, 2); // Moved to the left and slightly further out
         frameGroup.rotation.y = Math.PI / 6; // Angled towards camera from the left
         frameGroup.rotation.x = -Math.PI / 18; 
         scene.add(frameGroup);
