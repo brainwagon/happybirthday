@@ -144,6 +144,37 @@
         const cakeGroup = new THREE.Group();
         scene.add(cakeGroup);
 
+        // --- Tabletop ---
+        const tableGeo = new THREE.BoxGeometry(50, 1, 50);
+        const tableMat = new THREE.MeshStandardMaterial({ color: 0x4a2c2a, roughness: 0.8 }); // Dark wood color
+        const table = new THREE.Mesh(tableGeo, tableMat);
+        table.position.y = -0.7; // Just below the plate
+        table.receiveShadow = true;
+        scene.add(table);
+
+        // --- Picture Frame ---
+        const frameGroup = new THREE.Group();
+        
+        // Frame border (Dark Wood)
+        const frameBorder = new THREE.Mesh(
+            new THREE.BoxGeometry(6, 8, 0.4),
+            new THREE.MeshStandardMaterial({ color: 0x2a1a1a, roughness: 0.6 })
+        );
+        frameGroup.add(frameBorder);
+        
+        // Picture (The "canvas")
+        const picture = new THREE.Mesh(
+            new THREE.PlaneGeometry(5.2, 7.2),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 })
+        );
+        picture.position.z = 0.21; // Sit slightly in front of the frame
+        frameGroup.add(picture);
+        
+        frameGroup.position.set(10, 3.3, 2); // To the right and slightly back
+        frameGroup.rotation.y = -Math.PI / 6; // Angled towards camera
+        frameGroup.rotation.x = -Math.PI / 18; // Tilted back
+        scene.add(frameGroup);
+
         const manager = new THREE.LoadingManager();
         const textureLoader = new THREE.TextureLoader(manager);
         const gltfLoader = new GLTFLoader(manager);
