@@ -210,8 +210,8 @@
         
         // table.position.y is -0.7, height is 1.0 -> top is at -0.2
         // frame height is 8.0, center should be at -0.2 + 4.0 = 3.8
-        frameGroup.position.set(10, 3.8, 2); 
-        frameGroup.rotation.y = -Math.PI / 6; 
+        frameGroup.position.set(-12, 3.8, 2); // Moved to the left (-12) and slightly further out
+        frameGroup.rotation.y = Math.PI / 6; // Angled towards camera from the left
         frameGroup.rotation.x = -Math.PI / 18; 
         scene.add(frameGroup);
 
