@@ -63,9 +63,26 @@
             pointer-events: auto;
         }
 
-        #start-button:hover {
+        #start-button:hover, #replay-button:hover {
             background-color: #c2185b;
             transform: scale(1.1);
+        }
+
+        #replay-button {
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            font-family: 'Dancing Script', cursive;
+            background-color: #d81b60;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s, background-color 0.2s;
+            z-index: 20;
+            pointer-events: auto;
+            display: none;
+            margin: 0 auto;
         }
 
         #container {
@@ -82,6 +99,7 @@
     <div id="ui-layer">
         <h1 id="message"></h1>
         <button id="start-button">Celebrate in 3D!</button>
+        <button id="replay-button">Play Again!</button>
     </div>
 
     <div id="container"></div>
@@ -91,8 +109,9 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/",
+                "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/0.1.10/spark.module.js"
             }
         }
     </script>
@@ -101,6 +120,7 @@
         import * as THREE from 'three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { SplatMesh, SplatLoader, SparkRenderer } from '@sparkjsdev/spark';
 
         // CONFIGURATION
         const CONFIG = {
@@ -129,6 +149,12 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.setClearColor(0x000000, 0); 
         document.getElementById('container').appendChild(renderer.domElement);
+
+        // Initialize Spark Renderer
+        const spark = new SparkRenderer({ renderer });
+        spark.renderOrder = 100;
+        scene.add(spark);
+
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 5.5, 0);
@@ -255,50 +281,20 @@
 
         const candles = [];
         const flames = [];
-        let cakeModel, mandoModel;
+        let cakeModel, splats;
 
-        gltfLoader.load('mandelorian.glb', (gltf) => {
-            mandoModel = gltf.scene;
+        const splatLoader = new SplatLoader(manager);
+        splatLoader.load('mand.spz', (splatData) => {
+            // splatData is the loaded PackedSplats object
+            splats = new SplatMesh({ packedSplats: splatData });
             
-            // Rotate so local Z points up (standard for some Z-up models)
-            // And rotate 180 degrees around local Z as requested
-            mandoModel.rotation.x = -Math.PI / 2;
-            mandoModel.rotation.z = Math.PI;
-            mandoModel.updateMatrixWorld(true);
-
-            // Center and scale the model based on its new orientation
-            const box = new THREE.Box3().setFromObject(mandoModel);
-            const size = box.getSize(new THREE.Vector3());
-            const center = box.getCenter(new THREE.Vector3());
+            splats.position.set(12, -1.2, 5);
+            splats.rotation.x = Math.PI;
+            splats.rotation.y = -3 * Math.PI / 4;
+            splats.scale.set(0.4, 0.4, 0.4);
             
-            // Scale to be roughly same height as the frame (12 units)
-            const scale = 12 / size.y;
-            mandoModel.scale.setScalar(scale);
-            
-            // Recalculate after scale
-            mandoModel.updateMatrixWorld(true);
-            const newBox = new THREE.Box3().setFromObject(mandoModel);
-            const newCenter = newBox.getCenter(new THREE.Vector3());
-            
-            // Offset model so its center-bottom is at group origin
-            mandoModel.position.x = -newCenter.x;
-            mandoModel.position.y = -newBox.min.y; 
-            mandoModel.position.z = -newCenter.z;
-            
-            const mandoGroup = new THREE.Group();
-            mandoGroup.add(mandoModel);
-            
-            // Set initial position of the group on the table
-            mandoGroup.position.set(18, -0.2, 5);
-            mandoGroup.rotation.y = -Math.PI / 4; 
-            scene.add(mandoGroup);
-
-            mandoModel.traverse(child => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                }
-            });
+            splats.renderOrder = 100;
+            scene.add(splats);
         });
 
         gltfLoader.load('birthday_cake.glb', (gltf) => {
@@ -331,6 +327,8 @@
                 if (child.isMesh) {
                     child.castShadow = false;
                     child.receiveShadow = true;
+                    child.material.transparent = false;
+                    child.material.depthWrite = true;
                 }
             });
 
@@ -460,6 +458,10 @@
             controls.update();
             // cakeGroup.rotation.y += 0.002;
             
+            if (spark && typeof spark.update === 'function') {
+                spark.update(camera);
+            }
+            
             if (celebrate) {
                 const time = Date.now();
                 flames.forEach((flame, i) => {
@@ -496,9 +498,11 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        const startBtn = document.getElementById('start-button');
-        startBtn.addEventListener('click', () => {
-            startBtn.style.display = 'none';
+        const startButton = document.getElementById('start-button');
+        const replayButton = document.getElementById('replay-button');
+
+        startButton.addEventListener('click', () => {
+            startButton.style.display = 'none';
             celebrate = true;
             confettiActive = true;
             flames.forEach((flame, index) => {
@@ -508,8 +512,16 @@
             setTimeout(() => document.getElementById('personal-message').style.opacity = 1, 2000);
         });
 
+        replayButton.addEventListener('click', () => {
+            replayButton.style.display = 'none';
+            confettiActive = true;
+            birthdaySong.currentTime = 0;
+            birthdaySong.play();
+        });
+
         birthdaySong.addEventListener('ended', () => {
             confettiActive = false; // Taper off once music ends
+            replayButton.style.display = 'block';
         });
 
     </script>
